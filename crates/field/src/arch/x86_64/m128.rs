@@ -29,7 +29,6 @@ use crate::{
 			},
 		},
 	},
-	arithmetic_traits::Broadcast,
 	underlier::{
 		Divisible, NumCast, SmallU, SpreadToByte, U2, U4, UnderlierType, UnderlierWithBitOps,
 		WithUnderlier, impl_divisible_bitmask, mapget, spread_fallback,
@@ -734,45 +733,6 @@ impl<Scalar: BinaryField> From<PackedPrimitiveType<M128, Scalar>> for __m128i {
 	}
 }
 
-impl<Scalar: BinaryField> Broadcast<Scalar> for PackedPrimitiveType<M128, Scalar>
-where
-	u128: From<Scalar::Underlier>,
-{
-	#[inline(always)]
-	fn broadcast(scalar: Scalar) -> Self {
-		let tower_level = Scalar::N_BITS.ilog2() as usize;
-		match tower_level {
-			0..=3 => {
-				let mut value = u128::from(scalar.to_underlier()) as u8;
-				for n in tower_level..3 {
-					value |= value << (1 << n);
-				}
-
-				unsafe { _mm_set1_epi8(value as i8) }.into()
-			}
-			4 => {
-				let value = u128::from(scalar.to_underlier()) as u16;
-				unsafe { _mm_set1_epi16(value as i16) }.into()
-			}
-			5 => {
-				let value = u128::from(scalar.to_underlier()) as u32;
-				unsafe { _mm_set1_epi32(value as i32) }.into()
-			}
-			6 => {
-				let value = u128::from(scalar.to_underlier()) as u64;
-				unsafe { _mm_set1_epi64x(value as i64) }.into()
-			}
-			7 => {
-				let value = u128::from(scalar.to_underlier());
-				value.into()
-			}
-			_ => {
-				unreachable!("invalid tower level")
-			}
-		}
-	}
-}
-
 #[inline]
 unsafe fn interleave_bits(a: __m128i, b: __m128i, log_block_len: usize) -> (__m128i, __m128i) {
 	match log_block_len {
@@ -866,6 +826,11 @@ impl Divisible<u128> for M128 {
 		assert!(index == 0, "index out of bounds");
 		Self::from(val)
 	}
+
+	#[inline]
+	fn broadcast(val: u128) -> Self {
+		Self::from(val)
+	}
 }
 
 impl Divisible<u64> for M128 {
@@ -906,6 +871,11 @@ impl Divisible<u64> for M128 {
 				_ => panic!("index out of bounds"),
 			}
 		}
+	}
+
+	#[inline]
+	fn broadcast(val: u64) -> Self {
+		unsafe { Self(_mm_set1_epi64x(val as i64)) }
 	}
 }
 
@@ -951,6 +921,11 @@ impl Divisible<u32> for M128 {
 				_ => panic!("index out of bounds"),
 			}
 		}
+	}
+
+	#[inline]
+	fn broadcast(val: u32) -> Self {
+		unsafe { Self(_mm_set1_epi32(val as i32)) }
 	}
 }
 
@@ -1004,6 +979,11 @@ impl Divisible<u16> for M128 {
 				_ => panic!("index out of bounds"),
 			}
 		}
+	}
+
+	#[inline]
+	fn broadcast(val: u16) -> Self {
+		unsafe { Self(_mm_set1_epi16(val as i16)) }
 	}
 }
 
@@ -1073,6 +1053,11 @@ impl Divisible<u8> for M128 {
 				_ => panic!("index out of bounds"),
 			}
 		}
+	}
+
+	#[inline]
+	fn broadcast(val: u8) -> Self {
+		unsafe { Self(_mm_set1_epi8(val as i8)) }
 	}
 }
 

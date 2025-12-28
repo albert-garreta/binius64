@@ -13,7 +13,9 @@ use super::{super::portable::packed::PackedPrimitiveType, m128::M128};
 use crate::{
 	BinaryField128bGhash,
 	arch::{
-		portable::packed_macros::impl_serialize_deserialize_for_packed_binary_field,
+		portable::packed_macros::{
+			impl_broadcast, impl_serialize_deserialize_for_packed_binary_field,
+		},
 		shared::ghash::ClMulUnderlier,
 	},
 	arithmetic_traits::{InvertOrZero, Square},
@@ -49,6 +51,8 @@ impl ClMulUnderlier for M128 {
 }
 
 pub type PackedBinaryGhash1x128b = PackedPrimitiveType<M128, BinaryField128bGhash>;
+
+impl_broadcast!(M128, BinaryField128bGhash);
 
 // Define multiply
 impl Mul for PackedBinaryGhash1x128b {

@@ -15,6 +15,7 @@ use crate::{
 		PairwiseStrategy,
 		portable::{
 			packed_ghash_128::ghash_mul,
+			packed_macros::impl_broadcast,
 			univariate_mul_utils_128::{Underlier128bLanes, spread_bits_64},
 		},
 	},
@@ -23,6 +24,9 @@ use crate::{
 };
 
 pub type PackedBinaryGhash1x128b = PackedPrimitiveType<M128, BinaryField128bGhash>;
+
+// Define broadcast
+impl_broadcast!(M128, BinaryField128bGhash);
 
 // Define multiply
 impl Mul for PackedBinaryGhash1x128b {

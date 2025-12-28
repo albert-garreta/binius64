@@ -23,7 +23,6 @@ use super::super::portable::{
 };
 use crate::{
 	BinaryField,
-	arithmetic_traits::Broadcast,
 	underlier::{
 		NumCast, SmallU, UnderlierType, UnderlierWithBitOps, WithUnderlier,
 		divisible::{Divisible, mapget},
@@ -255,6 +254,11 @@ impl Divisible<u128> for M128 {
 			_ => panic!("index out of bounds"),
 		}
 	}
+
+	#[inline]
+	fn broadcast(val: u128) -> Self {
+		Self::from(val)
+	}
 }
 
 impl Divisible<u64> for M128 {
@@ -295,6 +299,11 @@ impl Divisible<u64> for M128 {
 				_ => panic!("index out of bounds"),
 			}
 		}
+	}
+
+	#[inline]
+	fn broadcast(val: u64) -> Self {
+		unsafe { Self(vdupq_n_u64(val)) }
 	}
 }
 
@@ -342,6 +351,11 @@ impl Divisible<u32> for M128 {
 				_ => panic!("index out of bounds"),
 			}
 		}
+	}
+
+	#[inline]
+	fn broadcast(val: u32) -> Self {
+		unsafe { Self::from(vdupq_n_u32(val)) }
 	}
 }
 
@@ -397,6 +411,11 @@ impl Divisible<u16> for M128 {
 				_ => panic!("index out of bounds"),
 			}
 		}
+	}
+
+	#[inline]
+	fn broadcast(val: u16) -> Self {
+		unsafe { Self::from(vdupq_n_u16(val)) }
 	}
 }
 
@@ -468,6 +487,11 @@ impl Divisible<u8> for M128 {
 				_ => panic!("index out of bounds"),
 			}
 		}
+	}
+
+	#[inline]
+	fn broadcast(val: u8) -> Self {
+		unsafe { Self::from(vdupq_n_u8(val)) }
 	}
 }
 
@@ -686,31 +710,6 @@ impl<Scalar: BinaryField> From<PackedPrimitiveType<M128, Scalar>> for u128 {
 impl<U: NumCast<u128>> NumCast<M128> for U {
 	fn num_cast_from(val: M128) -> Self {
 		Self::num_cast_from(val.into())
-	}
-}
-
-impl<Scalar: BinaryField> Broadcast<Scalar> for PackedPrimitiveType<M128, Scalar>
-where
-	u128: From<Scalar::Underlier>,
-{
-	#[inline]
-	fn broadcast(scalar: Scalar) -> Self {
-		let tower_level = Scalar::N_BITS.ilog2() as usize;
-		let mut value = u128::from(scalar.to_underlier());
-		for n in tower_level..3 {
-			value |= value << (1 << n);
-		}
-
-		let value = match tower_level {
-			0..=3 => unsafe { vreinterpretq_p128_u8(vdupq_n_u8(value as u8)) },
-			4 => unsafe { vreinterpretq_p128_u16(vdupq_n_u16(value as u16)) },
-			5 => unsafe { vreinterpretq_p128_u32(vdupq_n_u32(value as u32)) },
-			6 => unsafe { vreinterpretq_p128_u64(vdupq_n_u64(value as u64)) },
-			7 => value,
-			_ => unreachable!(),
-		};
-
-		value.into()
 	}
 }
 

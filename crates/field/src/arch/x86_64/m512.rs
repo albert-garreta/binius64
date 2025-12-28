@@ -33,7 +33,6 @@ use crate::{
 			m256::M256,
 		},
 	},
-	arithmetic_traits::Broadcast,
 	underlier::{
 		Divisible, NumCast, SmallU, U1, U2, U4, UnderlierType, UnderlierWithBitOps, WithUnderlier,
 		get_block_values, get_spread_bytes, impl_divisible_bitmask, mapget, spread_fallback,
@@ -825,28 +824,6 @@ impl<Scalar: BinaryField> From<PackedPrimitiveType<M512, Scalar>> for __m512i {
 	}
 }
 
-impl<Scalar: BinaryField> Broadcast<Scalar> for PackedPrimitiveType<M512, Scalar>
-where
-	u128: From<Scalar::Underlier>,
-{
-	fn broadcast(scalar: Scalar) -> Self {
-		let tower_level = Scalar::N_BITS.ilog2() as usize;
-		let mut value = u128::from(scalar.to_underlier());
-		for n in tower_level..3 {
-			value |= value << (1 << n);
-		}
-
-		match tower_level {
-			0..=3 => unsafe { _mm512_broadcastb_epi8(must_cast(value)).into() },
-			4 => unsafe { _mm512_broadcastw_epi16(must_cast(value)).into() },
-			5 => unsafe { _mm512_broadcastd_epi32(must_cast(value)).into() },
-			6 => unsafe { _mm512_broadcastq_epi64(must_cast(value)).into() },
-			7 => [value, value, value, value].into(),
-			_ => unreachable!(),
-		}
-	}
-}
-
 // TODO: Add efficient interleave specialization for 512-bit values
 impl UnderlierWithBitConstants for M512 {
 	const INTERLEAVE_EVEN_MASK: &'static [Self] = &[
@@ -1203,6 +1180,11 @@ impl Divisible<M256> for M512 {
 			}
 		}
 	}
+
+	#[inline]
+	fn broadcast(val: M256) -> Self {
+		unsafe { Self(_mm512_broadcast_i64x4(val.0)) }
+	}
 }
 
 impl Divisible<M128> for M512 {
@@ -1248,6 +1230,11 @@ impl Divisible<M128> for M512 {
 			}
 		}
 	}
+
+	#[inline]
+	fn broadcast(val: M128) -> Self {
+		unsafe { Self(_mm512_broadcast_i32x4(val.0)) }
+	}
 }
 
 impl Divisible<u128> for M512 {
@@ -1276,6 +1263,11 @@ impl Divisible<u128> for M512 {
 	#[inline]
 	fn set(self, index: usize, val: u128) -> Self {
 		Divisible::<M128>::set(self, index, M128::from(val))
+	}
+
+	#[inline]
+	fn broadcast(val: u128) -> Self {
+		Divisible::<M128>::broadcast(M128::from(val))
 	}
 }
 
@@ -1314,6 +1306,11 @@ impl Divisible<u64> for M512 {
 		let new_lane = Divisible::<u64>::set(lane, sub_idx, val);
 		Divisible::<M128>::set(self, lane_idx, new_lane)
 	}
+
+	#[inline]
+	fn broadcast(val: u64) -> Self {
+		unsafe { Self(_mm512_set1_epi64(val as i64)) }
+	}
 }
 
 impl Divisible<u32> for M512 {
@@ -1350,6 +1347,11 @@ impl Divisible<u32> for M512 {
 		let lane = Divisible::<M128>::get(self, lane_idx);
 		let new_lane = Divisible::<u32>::set(lane, sub_idx, val);
 		Divisible::<M128>::set(self, lane_idx, new_lane)
+	}
+
+	#[inline]
+	fn broadcast(val: u32) -> Self {
+		unsafe { Self(_mm512_set1_epi32(val as i32)) }
 	}
 }
 
@@ -1388,6 +1390,11 @@ impl Divisible<u16> for M512 {
 		let new_lane = Divisible::<u16>::set(lane, sub_idx, val);
 		Divisible::<M128>::set(self, lane_idx, new_lane)
 	}
+
+	#[inline]
+	fn broadcast(val: u16) -> Self {
+		unsafe { Self(_mm512_set1_epi16(val as i16)) }
+	}
 }
 
 impl Divisible<u8> for M512 {
@@ -1424,6 +1431,11 @@ impl Divisible<u8> for M512 {
 		let lane = Divisible::<M128>::get(self, lane_idx);
 		let new_lane = Divisible::<u8>::set(lane, sub_idx, val);
 		Divisible::<M128>::set(self, lane_idx, new_lane)
+	}
+
+	#[inline]
+	fn broadcast(val: u8) -> Self {
+		unsafe { Self(_mm512_set1_epi8(val as i8)) }
 	}
 }
 
