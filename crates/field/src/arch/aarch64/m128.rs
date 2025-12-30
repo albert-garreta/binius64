@@ -19,7 +19,7 @@ use seq_macro::seq;
 
 use super::super::portable::{
 	packed::{PackedPrimitiveType, impl_pack_scalar},
-	packed_arithmetic::{UnderlierWithBitConstants, interleave_mask_even, interleave_mask_odd},
+	packed_arithmetic::interleave_mask_even,
 };
 use crate::{
 	BinaryField,
@@ -643,35 +643,20 @@ impl UnderlierWithBitOps for M128 {
 	fn fill_with_bit(val: u8) -> Self {
 		Self(unsafe { vdupq_n_u64(u64::fill_with_bit(val)) })
 	}
-}
-
-impl UnderlierWithBitConstants for M128 {
-	const INTERLEAVE_EVEN_MASK: &'static [Self] = &[
-		Self::from_u128(interleave_mask_even!(u128, 0)),
-		Self::from_u128(interleave_mask_even!(u128, 1)),
-		Self::from_u128(interleave_mask_even!(u128, 2)),
-		Self::from_u128(interleave_mask_even!(u128, 3)),
-		Self::from_u128(interleave_mask_even!(u128, 4)),
-		Self::from_u128(interleave_mask_even!(u128, 5)),
-		Self::from_u128(interleave_mask_even!(u128, 6)),
-	];
-	const INTERLEAVE_ODD_MASK: &'static [Self] = &[
-		Self::from_u128(interleave_mask_odd!(u128, 0)),
-		Self::from_u128(interleave_mask_odd!(u128, 1)),
-		Self::from_u128(interleave_mask_odd!(u128, 2)),
-		Self::from_u128(interleave_mask_odd!(u128, 3)),
-		Self::from_u128(interleave_mask_odd!(u128, 4)),
-		Self::from_u128(interleave_mask_odd!(u128, 5)),
-		Self::from_u128(interleave_mask_odd!(u128, 6)),
-	];
 
 	#[inline]
 	fn interleave(self, other: Self, log_block_len: usize) -> (Self, Self) {
+		const MASKS: [M128; 3] = [
+			M128::from_u128(interleave_mask_even!(u128, 0)),
+			M128::from_u128(interleave_mask_even!(u128, 1)),
+			M128::from_u128(interleave_mask_even!(u128, 2)),
+		];
+
 		unsafe {
 			seq!(LOG_BLOCK_LEN in 0..=2 {
 				if log_block_len == LOG_BLOCK_LEN {
 					let (a, b) = (self.into(), other.into());
-					let mask = Self::INTERLEAVE_EVEN_MASK[LOG_BLOCK_LEN].into();
+					let mask = MASKS[LOG_BLOCK_LEN].into();
 					let t = vandq_u64(veorq_u64(vshrq_n_u64(a, 1 << LOG_BLOCK_LEN), b), mask);
 					let c = veorq_u64(a, vshlq_n_u64(t, 1 << LOG_BLOCK_LEN));
 					let d = veorq_u64(b, t);
