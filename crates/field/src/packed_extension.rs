@@ -1,7 +1,8 @@
 // Copyright 2023-2025 Irreducible Inc.
 
 use crate::{
-	ExtensionField, Field, PackedField, as_packed_field::PackScalar, underlier::WithUnderlier,
+	BinaryField, ExtensionField, Field, PackedField, arch::PackedPrimitiveType,
+	underlier::WithUnderlier,
 };
 
 /// Trait represents a relationship between a packed struct of field elements and a packed struct
@@ -97,10 +98,11 @@ pub trait PackedExtension<FS: Field>: PackedField<Scalar: ExtensionField<FS>> {
 
 impl<PT, FS> PackedExtension<FS> for PT
 where
-	FS: Field,
-	PT: PackedField<Scalar: ExtensionField<FS>> + WithUnderlier<Underlier: PackScalar<FS>>,
+	FS: BinaryField,
+	PT: PackedField<Scalar: ExtensionField<FS>> + WithUnderlier,
+	PackedPrimitiveType<PT::Underlier, FS>: PackedField<Scalar = FS>,
 {
-	type PackedSubfield = <PT::Underlier as PackScalar<FS>>::Packed;
+	type PackedSubfield = PackedPrimitiveType<PT::Underlier, FS>;
 
 	fn cast_bases(packed: &[Self]) -> &[Self::PackedSubfield] {
 		Self::PackedSubfield::from_underliers_ref(Self::to_underliers_ref(packed))
@@ -146,57 +148,3 @@ where
 /// Convenient type alias that returns the packed field type for the scalar field `F` and packed
 /// extension `P`.
 pub type PackedSubfield<P, F> = <P as PackedExtension<F>>::PackedSubfield;
-
-/// Recast a packed field from one subfield of a packed extension to another.
-pub fn recast_packed<P, FSub1, FSub2>(elem: PackedSubfield<P, FSub1>) -> PackedSubfield<P, FSub2>
-where
-	P: PackedField + PackedExtension<FSub1> + PackedExtension<FSub2>,
-	P::Scalar: ExtensionField<FSub1> + ExtensionField<FSub2>,
-	FSub1: Field,
-	FSub2: Field,
-{
-	<P as PackedExtension<FSub2>>::cast_base(<P as PackedExtension<FSub1>>::cast_ext(elem))
-}
-
-/// Recast a slice of packed field elements from one subfield of a packed extension to another.
-pub fn recast_packed_slice<P, FSub1, FSub2>(
-	elems: &[PackedSubfield<P, FSub1>],
-) -> &[PackedSubfield<P, FSub2>]
-where
-	P: PackedField + PackedExtension<FSub1> + PackedExtension<FSub2>,
-	P::Scalar: ExtensionField<FSub1> + ExtensionField<FSub2>,
-	FSub1: Field,
-	FSub2: Field,
-{
-	<P as PackedExtension<FSub2>>::cast_bases(<P as PackedExtension<FSub1>>::cast_exts(elems))
-}
-
-/// Recast a mutable slice of packed field elements from one subfield of a packed extension to
-/// another.
-pub fn recast_packed_mut<P, FSub1, FSub2>(
-	elems: &mut [PackedSubfield<P, FSub1>],
-) -> &mut [PackedSubfield<P, FSub2>]
-where
-	P: PackedField + PackedExtension<FSub1> + PackedExtension<FSub2>,
-	P::Scalar: ExtensionField<FSub1> + ExtensionField<FSub2>,
-	FSub1: Field,
-	FSub2: Field,
-{
-	<P as PackedExtension<FSub2>>::cast_bases_mut(<P as PackedExtension<FSub1>>::cast_exts_mut(
-		elems,
-	))
-}
-
-/// This trait is a shorthand for the case `PackedExtension<P::Scalar, PackedSubfield = P>` which is
-/// a quite common case in our codebase.
-pub trait RepackedExtension<P: PackedField>:
-	PackedField<Scalar: ExtensionField<P::Scalar>> + PackedExtension<P::Scalar, PackedSubfield = P>
-{
-}
-
-impl<PT1, PT2> RepackedExtension<PT1> for PT2
-where
-	PT1: PackedField,
-	PT2: PackedExtension<PT1::Scalar, PackedSubfield = PT1, Scalar: ExtensionField<PT1::Scalar>>,
-{
-}
