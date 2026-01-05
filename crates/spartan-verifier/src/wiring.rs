@@ -57,9 +57,19 @@ where
 		final_fri_value: witness_eval,
 		final_sumcheck_value: eval,
 		challenges: mut r_y,
-	} = basefold::verify(fri_params, merkle_scheme, codeword_commitment, batched_claim, transcript)?;
+	} = basefold::verify_zk(
+		fri_params,
+		merkle_scheme,
+		codeword_commitment,
+		batched_claim,
+		transcript,
+	)?;
 
 	r_y.reverse();
+
+	// The challenges include the batch_challenge as the last element after reversal.
+	// For the wiring check, we only need the sumcheck challenges (first n elements).
+	r_y.pop();
 
 	Ok(Output {
 		lambda,
