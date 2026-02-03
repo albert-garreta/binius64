@@ -1,8 +1,9 @@
 // Copyright 2025 Irreducible Inc.
+// Copyright 2026 The Binius Developers
 
 mod utils;
 
-use std::alloc::System;
+use std::{alloc::System, env};
 
 use binius_examples::circuits::keccak::{Instance, KeccakExample, Params};
 use criterion::{Criterion, Throughput, criterion_group, criterion_main};
@@ -19,7 +20,11 @@ struct KeccakBenchmark {
 
 impl KeccakBenchmark {
 	fn new() -> Self {
-		let config = HashBenchConfig::from_env();
+		let mut config = HashBenchConfig::from_env();
+		// Default to 136 * 200 bytes unless HASH_MAX_BYTES is provided.
+		if env::var("HASH_MAX_BYTES").is_err() {
+			config.max_bytes = 136 * 200;
+		}
 		Self { config }
 	}
 }

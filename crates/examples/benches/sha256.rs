@@ -23,6 +23,12 @@ impl Sha256Benchmark {
 		let config = HashBenchConfig::from_env();
 		Self { config }
 	}
+	// fn new() -> Self {
+	// 	let mut config = HashBenchConfig::from_env();
+    //     // This overrides whatever was set in the environment
+    //     config.max_bytes = 10000*64 ;//185_640;
+	// 	Self { config }
+	// }
 }
 
 impl ExampleBenchmark for Sha256Benchmark {

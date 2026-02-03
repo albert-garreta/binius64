@@ -1,3 +1,5 @@
+# Copyright 2026 The Binius Developers
+
 [package]
 name = "binius-examples"
 version.workspace = true
@@ -52,6 +54,10 @@ name = "ethsign"
 harness = false
 
 [[bench]]
+name = "ecdsa_verify"
+harness = false
+
+[[bench]]
 name = "blake2s"
 harness = false
 
@@ -64,7 +70,15 @@ name = "sha256"
 harness = false
 
 [[bench]]
+name = "sha256_ecdsa_verify"
+harness = false
+
+[[bench]]
 name = "sha512"
+harness = false
+
+[[bench]]
+name = "iterated_f"
 harness = false
 
 [features]

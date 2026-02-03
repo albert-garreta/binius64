@@ -20,7 +20,9 @@ struct Blake2sBenchmark {
 
 impl Blake2sBenchmark {
 	fn new() -> Self {
-		let config = HashBenchConfig::from_env();
+		let mut config = HashBenchConfig::from_env();
+        // This overrides whatever was set in the environment
+        config.max_bytes = 131072;
 		Self { config }
 	}
 }
