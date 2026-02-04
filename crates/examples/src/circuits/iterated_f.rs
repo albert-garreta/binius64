@@ -11,17 +11,21 @@ use rand::{Rng, SeedableRng, rngs::StdRng};
 
 use crate::ExampleCircuit;
 
-pub const ITERATIONS: usize = 1 << 13;
+pub const DEFAULT_ITERATIONS: usize = 1 << 13;
 const ROT_RIGHT: u32 = 3;
 const DEFAULT_RANDOM_SEED: u64 = 42;
 
 pub struct IteratedFExample {
 	x0: Wire,
 	x_final: Wire,
+	n_iterations: usize,
 }
 
 #[derive(Args, Debug, Clone, Default)]
-pub struct Params {}
+pub struct Params {
+    #[arg(long, default_value_t = DEFAULT_ITERATIONS)]
+    pub n_iterations: usize,
+}
 
 #[derive(Args, Debug, Clone)]
 pub struct Instance {
@@ -34,7 +38,7 @@ impl ExampleCircuit for IteratedFExample {
 	type Params = Params;
 	type Instance = Instance;
 
-	fn build(_params: Params, builder: &mut CircuitBuilder) -> Result<Self> {
+	fn build(params: Params, builder: &mut CircuitBuilder) -> Result<Self> {
 		let x0 = builder.add_inout();
 		let x_final = builder.add_inout();
 
@@ -43,7 +47,7 @@ impl ExampleCircuit for IteratedFExample {
 		builder.assert_eq("x0_32bit", x0, x0_masked);
 
 		let mut x = x0;
-		for _ in 0..ITERATIONS {
+		for _ in 0..params.n_iterations {
 			let (_hi, lo) = builder.imul(x, x);
 			let sq_lo = builder.band(lo, mask);
 			let rot = builder.rotr_32(x, ROT_RIGHT);
@@ -52,7 +56,7 @@ impl ExampleCircuit for IteratedFExample {
 
 		builder.assert_eq("final_matches", x, x_final);
 
-		Ok(Self { x0, x_final })
+		Ok(Self { x0, x_final, n_iterations: params.n_iterations })
 	}
 
 	fn populate_witness(&self, instance: Instance, filler: &mut WitnessFiller) -> Result<()> {
@@ -65,7 +69,7 @@ impl ExampleCircuit for IteratedFExample {
 		};
 
 		let mut x = x0_value;
-		for _ in 0..ITERATIONS {
+		for _ in 0..self.n_iterations {
 			x = x.wrapping_mul(x) ^ x.rotate_right(ROT_RIGHT);
 		}
 
@@ -74,7 +78,7 @@ impl ExampleCircuit for IteratedFExample {
 		Ok(())
 	}
 
-	fn param_summary(_params: &Self::Params) -> Option<String> {
-		Some(format!("{}i", ITERATIONS))
-	}
+	fn param_summary(params: &Self::Params) -> Option<String> {
+        Some(format!("{}i", params.n_iterations))
+    }
 }

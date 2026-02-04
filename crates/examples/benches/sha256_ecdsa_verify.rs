@@ -24,11 +24,15 @@ struct Sha256EcdsaVerifyBenchmark {
 impl Sha256EcdsaVerifyBenchmark {
 	fn new() -> Self {
 		let sign_config = SignBenchConfig::from_env(1);
-		Self {
-			message_len_bytes: DEFAULT_MESSAGE_LEN_BYTES,
-			log_inv_rate: sign_config.log_inv_rate,
-		}
-	}
+		        let message_len_bytes = std::env::var("MESSAGE_LEN")
+            .ok()
+            .and_then(|s| s.parse::<usize>().ok())
+            .unwrap_or(DEFAULT_MESSAGE_LEN_BYTES);
+        Self {
+            message_len_bytes,
+            log_inv_rate: sign_config.log_inv_rate,
+        }
+    }
 }
 
 impl ExampleBenchmark for Sha256EcdsaVerifyBenchmark {
