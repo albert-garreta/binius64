@@ -1,5 +1,5 @@
 // Copyright 2026 The Binius Developers
-//! Iterated f circuit: apply $f(x) = (x^2 \bmod 2^{32}) \oplus \operatorname{ROTR}^3(x)$
+//! Iterated f circuit: apply $f(x) = (x^2 \bmod 2^{32}) \oplus \operatorname{ROTR}^{14}(x)$
 //! for a configurable number of steps starting from `x0`.
 //!
 //! Note: Benchmark is in crates/examples/benches/iterated_f.rs.
