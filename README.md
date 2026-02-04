@@ -1,5 +1,9 @@
 ![Binius logo](assets/Logo.png "Binius logo")
 
+# Custom benches
+
+cargo bench -p binius-examples --bench iterated_f
+
 # Binius64
 
 Binius64 is a zero-knowledge succinct argument system (zk-SNARK), implemented in Rust. Binius64 is capable of proving arbitrary computations, expressed as non-deterministic circuits over 64-bit words.
