@@ -1,27 +1,29 @@
 // Copyright 2026 The Binius Developers
-//! Iterated f benchmark
+//! Iterated f shift benchmark
 
-// cargo bench -p binius-examples --bench iterated_f
+// cargo bench -p binius-examples --bench iterated_f_shift
 
 mod utils;
 
 use std::alloc::System;
 
-use binius_examples::circuits::iterated_f::{DEFAULT_ITERATIONS, Instance, IteratedFExample, Params};
+use binius_examples::circuits::iterated_f_shift::{
+	DEFAULT_ITERATIONS, Instance, IteratedFShiftExample, Params,
+};
 use criterion::{Criterion, Throughput, criterion_group, criterion_main};
 use peakmem_alloc::PeakAlloc;
 use utils::{ExampleBenchmark, print_benchmark_header, run_cs_benchmark};
 
 // Global allocator that tracks peak memory usage
 #[global_allocator]
-static ITERATED_F_PEAK_ALLOC: PeakAlloc<System> = PeakAlloc::new(System);
+static ITERATED_F_SHIFT_PEAK_ALLOC: PeakAlloc<System> = PeakAlloc::new(System);
 
-struct IteratedFBenchmark {
+struct IteratedFShiftBenchmark {
 	log_inv_rate: usize,
 	iterations: usize,
 }
 
-impl IteratedFBenchmark {
+impl IteratedFShiftBenchmark {
 	fn new() -> Self {
 		let log_inv_rate = std::env::var("LOG_INV_RATE")
 			.ok()
@@ -38,10 +40,10 @@ impl IteratedFBenchmark {
 	}
 }
 
-impl ExampleBenchmark for IteratedFBenchmark {
+impl ExampleBenchmark for IteratedFShiftBenchmark {
 	type Params = Params;
 	type Instance = Instance;
-	type Example = IteratedFExample;
+	type Example = IteratedFShiftExample;
 
 	fn create_params(&self) -> Self::Params {
 		Params {
@@ -75,14 +77,14 @@ impl ExampleBenchmark for IteratedFBenchmark {
 			("x0".to_string(), format!("0x{:08x}", 0x1234_5678u32)),
 			("Log inverse rate".to_string(), self.log_inv_rate.to_string()),
 		];
-		print_benchmark_header("Iterated f", &params_list);
+		print_benchmark_header("Iterated f shift", &params_list);
 	}
 }
 
-fn bench_iterated_f(c: &mut Criterion) {
-	let benchmark = IteratedFBenchmark::new();
-	run_cs_benchmark(c, benchmark, "iterated_f", &ITERATED_F_PEAK_ALLOC);
+fn bench_iterated_f_shift(c: &mut Criterion) {
+	let benchmark = IteratedFShiftBenchmark::new();
+	run_cs_benchmark(c, benchmark, "iterated_f_shift", &ITERATED_F_SHIFT_PEAK_ALLOC);
 }
 
-criterion_group!(benches, bench_iterated_f);
+criterion_group!(benches, bench_iterated_f_shift);
 criterion_main!(benches);

@@ -81,6 +81,14 @@ harness = false
 name = "iterated_f"
 harness = false
 
+[[bench]]
+name = "iterated_f_shift"
+harness = false
+
+[[bench]]
+name = "iterated_f_add"
+harness = false
+
 [features]
 default = ["rayon"]
 perfetto = ["tracing-profile/perfetto"]

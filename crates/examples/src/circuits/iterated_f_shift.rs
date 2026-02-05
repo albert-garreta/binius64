@@ -1,13 +1,8 @@
 // Copyright 2026 The Binius Developers
-//! Iterated f circuit: apply $f(x) = (x^2 \bmod 2^{32}) \oplus \operatorname{ROTR}^{14}(x)$
+//! Iterated f circuit: apply $f(x) = (x^2 \bmod 2^{32}) \oplus \operatorname{ROTR}^{14}(x) \oplus \operatorname{SHIFTR}^{3}(x)$
 //! for a configurable number of steps starting from `x0`.
 //!
-//! This example demonstrates how to express a simple 32-bit update rule using
-//! 64-bit words in the circuit, while enforcing the 32-bit range constraint.
-//! The update rule is repeated `iterations` times and the final value is exposed
-//! as a public output (`x_final`).
-//!
-//! Note: Benchmark is in crates/examples/benches/iterated_f.rs.
+//! Note: Benchmark is in crates/examples/benches/iterated_f_shift.rs.
 use anyhow::Result;
 use binius_core::Word;
 use binius_frontend::{CircuitBuilder, Wire, WitnessFiller};
@@ -16,11 +11,12 @@ use rand::{Rng, SeedableRng, rngs::StdRng};
 
 use crate::ExampleCircuit;
 
-pub const DEFAULT_ITERATIONS: usize = 1 << 20;
+pub const DEFAULT_ITERATIONS: usize = 1 << 13;
 const ROT_RIGHT: u32 = 14;
+const SHIFT_RIGHT: u32 = 3;
 const DEFAULT_RANDOM_SEED: u64 = 42;
 
-pub struct IteratedFExample {
+pub struct IteratedFShiftExample {
 	x0: Wire,
 	x_final: Wire,
 	iterations: usize,
@@ -40,7 +36,7 @@ pub struct Instance {
 	pub x0: Option<u32>,
 }
 
-impl ExampleCircuit for IteratedFExample {
+impl ExampleCircuit for IteratedFShiftExample {
 	type Params = Params;
 	type Instance = Instance;
 
@@ -48,24 +44,20 @@ impl ExampleCircuit for IteratedFExample {
 		let x0 = builder.add_inout();
 		let x_final = builder.add_inout();
 
-		// Ensure the initial witness value is a 32-bit unsigned integer by masking
-		// and asserting equality inside the circuit.
 		let mask = builder.add_constant_64(0xFFFF_FFFF);
 		let x0_masked = builder.band(x0, mask);
 		builder.assert_eq("x0_32bit", x0, x0_masked);
 
-		// Iterate the function in-circuit, keeping values in the low 32 bits.
 		let mut x = x0;
 		for _ in 0..params.iterations {
-			// Compute x^2 as a 128-bit product (hi, lo). Only the low 32 bits are kept.
 			let (_hi, lo) = builder.imul(x, x);
 			let sq_lo = builder.band(lo, mask);
-			// Rotate right in 32-bit space, then XOR with the masked square.
 			let rot = builder.rotr_32(x, ROT_RIGHT);
-			x = builder.bxor(sq_lo, rot);
+			let shift = builder.shr_32(x, SHIFT_RIGHT);
+			let mixed = builder.bxor(sq_lo, rot);
+			x = builder.bxor(mixed, shift);
 		}
 
-		// Public output must match the final iterated value.
 		builder.assert_eq("final_matches", x, x_final);
 
 		Ok(Self {
@@ -76,8 +68,6 @@ impl ExampleCircuit for IteratedFExample {
 	}
 
 	fn populate_witness(&self, instance: Instance, filler: &mut WitnessFiller) -> Result<()> {
-		// Use the provided instance value, or generate a deterministic pseudo-random
-		// 32-bit value to keep benchmarking reproducible.
 		let x0_value = match instance.x0 {
 			Some(value) => value,
 			None => {
@@ -86,13 +76,11 @@ impl ExampleCircuit for IteratedFExample {
 			}
 		};
 
-		// Mirror the circuit logic in plain Rust to compute the expected output.
 		let mut x = x0_value;
 		for _ in 0..self.iterations {
-			x = x.wrapping_mul(x) ^ x.rotate_right(ROT_RIGHT);
+			x = x.wrapping_mul(x) ^ x.rotate_right(ROT_RIGHT) ^ (x >> SHIFT_RIGHT);
 		}
 
-		// Fill witness wires with 64-bit words containing the 32-bit values.
 		filler[self.x0] = Word(x0_value as u64);
 		filler[self.x_final] = Word(x as u64);
 		Ok(())
