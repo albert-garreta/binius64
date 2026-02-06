@@ -1,4 +1,5 @@
 // Copyright 2025 Irreducible Inc.
+// Copyright 2026 The Binius Developers
 //! Common benchmark runner for constraint system benchmarks
 
 use std::error::Error;
@@ -12,6 +13,9 @@ use binius_verifier::{
 };
 use criterion::{BenchmarkId, Criterion, Throughput};
 use peakmem_alloc::PeakAllocTrait;
+use tracing_subscriber::{Registry, layer::SubscriberExt};
+
+use super::phase_timing::PhaseTimingLayer;
 
 /// Trait for standardized constraint system benchmarks
 pub trait ExampleBenchmark {
@@ -59,7 +63,7 @@ pub fn run_cs_benchmark<B: ExampleBenchmark>(
 	group_prefix: &str,
 	peak_alloc: &impl PeakAllocTrait,
 ) {
-	use super::reporting::{print_env_help, print_memory_stats, print_proof_size};
+	use super::reporting::{print_env_help, print_memory_stats, print_phase_timings, print_proof_size};
 
 	// Check for help
 	print_env_help();
@@ -79,6 +83,13 @@ pub fn run_cs_benchmark<B: ExampleBenchmark>(
 	let example = B::build_example_circuit(params.clone(), &mut builder).unwrap();
 	let circuit = builder.build();
 	let cs = circuit.constraint_system().clone();
+
+	// Print constraint system stats
+	println!("\nConstraint System Stats:");
+	println!("  AND constraints: {}", cs.and_constraints.len());
+	println!("  MUL constraints: {}", cs.mul_constraints.len());
+	println!("  Witness words:   {}", cs.value_vec_layout.committed_total_len);
+
 	let (verifier, prover) = setup_sha256(cs, benchmark.log_inv_rate(), None).unwrap();
 
 	// Track memory for witness generation
@@ -154,6 +165,22 @@ pub fn run_cs_benchmark<B: ExampleBenchmark>(
 		group.finish();
 	}
 
+	// Capture phase timings with tracing
+	let phase_timings = {
+		let (layer, collector) = PhaseTimingLayer::new();
+		let subscriber = Registry::default().with(layer);
+
+		// Run proof generation with the phase timing layer active
+		tracing::subscriber::with_default(subscriber, || {
+			let mut prover_transcript = ProverTranscript::new(StdChallenger::default());
+			prover
+				.prove(witness.clone(), &mut prover_transcript)
+				.unwrap();
+		});
+
+		collector.collect()
+	};
+
 	// Generate proof for verification and size measurement
 	let mut prover_transcript = ProverTranscript::new(StdChallenger::default());
 	prover
@@ -197,4 +224,7 @@ pub fn run_cs_benchmark<B: ExampleBenchmark>(
 		proof_peak_bytes,
 		verify_peak_bytes,
 	);
+
+	// Print phase timing breakdown
+	print_phase_timings(&group_prefix.replace('_', " ").to_uppercase(), &phase_timings);
 }

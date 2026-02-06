@@ -1,0 +1,28 @@
+# This CITATION.cff file was generated for the iterated_f experiment.
+# Citation File Format: https://citation-file-format.github.io/
+
+cff-version: 1.2.0
+title: "Iterated f Benchmark for Binius64"
+message: "If you use this benchmark in your research, please cite it as below."
+type: software
+authors:
+  - name: "The Binius Developers"
+repository-code: "https://github.com/binius-zk/binius64"
+url: "https://www.binius.xyz"
+license:
+  - Apache-2.0
+  - MIT
+version: "0.1.0"
+date-released: "2026-01-01"
+keywords:
+  - zero-knowledge proofs
+  - zk-SNARK
+  - binary fields
+  - cryptography
+  - benchmarking
+abstract: >-
+  Benchmark circuit for evaluating Binius64, a zero-knowledge proof system
+  over binary fields. The iterated_f circuit computes repeated applications
+  of the function f(x) = (x² mod 2³²) ⊕ ROTR¹⁴(x), demonstrating the
+  system's performance for iterative computations with mixed arithmetic
+  and bitwise operations.

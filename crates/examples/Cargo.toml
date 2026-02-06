@@ -30,6 +30,7 @@ hex.workspace = true
 jwt-simple.workspace = true
 peakmem-alloc = "0.2.0"
 rand.workspace = true
+num-bigint.workspace = true
 sha2.workspace = true
 sha3.workspace = true
 tiny-keccak = "2.0.2"
@@ -40,6 +41,7 @@ ureq.workspace = true
 [dev-dependencies]
 criterion.workspace = true
 hex-literal.workspace = true
+tracing-subscriber.workspace = true
 
 [[bench]]
 name = "blake2b"
@@ -82,11 +84,27 @@ name = "iterated_f"
 harness = false
 
 [[bench]]
+name = "iterated_f_conditional"
+harness = false
+
+[[bench]]
 name = "iterated_f_shift"
 harness = false
 
 [[bench]]
 name = "iterated_f_add"
+harness = false
+
+[[bench]]
+name = "iterated_g"
+harness = false
+
+[[bench]]
+name = "iterated_g32"
+harness = false
+
+[[bench]]
+name = "iterated_g32_conditional"
 harness = false
 
 [features]
